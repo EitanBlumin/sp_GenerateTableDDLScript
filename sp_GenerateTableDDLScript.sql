@@ -86,6 +86,8 @@ Remarks:
 	- Not for replication property
 	- XML document collections
 	- Rule objects
+	- Non-default Filegroups
+	- In-Memory tables
 
 ---------------------------------------------------------------------------
 Acknowledgements:
