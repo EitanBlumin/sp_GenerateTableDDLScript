@@ -4,7 +4,8 @@ This procedure can be used to generate a CREATE TABLE script for a given table.
 
 ## License:
 
-The sp_GenerateTableDDLScript procedure is licensed under the Mozilla Public License 2.0
+The sp_GenerateTableDDLScript procedure is licensed under the Mozilla Public License 2.0.
+
 For more info [Click Here](https://github.com/EitanBlumin/sp_GenerateTableDDLScript/blob/master/LICENSE)
 
 ## Installation
@@ -42,15 +43,15 @@ SELECT @CMD
 ## Procedure Parameters
 
 ```
-@TableName SYSNAME,					-- The name of the source table. This parameter is mandatory. If the table's schema is not default (dbo), then please specify the schema name as well as part of the parameter.
+@TableName SYSNAME,			-- The name of the source table. This parameter is mandatory. If the table's schema is not default (dbo), then please specify the schema name as well as part of the parameter.
 @NewTableName SYSNAME = NULL,		-- The name of the new (target) table. You may also include database and schema as part of the name. If not specified, same name as source table will be used.
 @Result NVARCHAR(MAX) OUTPUT,		-- Output textual parameter that will contain the result TSQL command for creating the table.
-@IncludeDefaults BIT = 1,			-- Set whether to include default constraints
+@IncludeDefaults BIT = 1,		-- Set whether to include default constraints
 @IncludeCheckConstraints BIT = 1,	-- Set whether to include check constraints
 @IncludeForeignKeys BIT = 1,		-- Set whether to include foreign key constraints
-@IncludeIndexes BIT = 1,			-- Set whether to include indexes
-@IncludePrimaryKey BIT = 1,			-- Set whether to include primary key constraints
-@IncludeIdentity BIT = 1,			-- Set whether to include identity property
+@IncludeIndexes BIT = 1,		-- Set whether to include indexes
+@IncludePrimaryKey BIT = 1,		-- Set whether to include primary key constraints
+@IncludeIdentity BIT = 1,		-- Set whether to include identity property
 @IncludeUniqueIndexes BIT = 1,		-- Set whether to include unique index constraints
 @IncludeComputedColumns BIT = 1,	-- Set whether to include computed columns (if not, they will also be automatically ignored by constraints and indexes)
 @UseSystemDataTypes BIT = 0,		-- Set whether to use system data type names instead of user data type names
