@@ -4,7 +4,8 @@ IF OBJECT_ID('dbo.sp_GenerateTableDDLScript') IS NOT NULL DROP PROCEDURE dbo.sp_
 GO
 /*
 ---------------------------------------------------------------------------
-sp_GenerateTableDDLScript version 1.0 Eitan Blumin https://www.eitanblumin.com
+sp_GenerateTableDDLScript version 1.0 by Eitan Blumin
+https://github.com/EitanBlumin/sp_GenerateTableDDLScript
 ---------------------------------------------------------------------------
 Copyright 2019 by Eitan Blumin at https://www.eitanblumin.com all rights reserved
 ---------------------------------------------------------------------------
