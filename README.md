@@ -1,7 +1,3 @@
-# sp_GenerateTableDDLScript
-
-This procedure can be used to generate a CREATE TABLE script for a given table.
-
 ## License:
 
 The sp_GenerateTableDDLScript procedure is licensed under the Mozilla Public License 2.0.
@@ -60,12 +56,12 @@ SELECT @CMD
 
 ## Remarks:
 
-- The source table must exist, otherwise an exception will be raised.
-- The script does not check whether the target table already exists,
+- The **source table must exist**, otherwise an exception will be raised.
+- The script **does not check whether the target table already exists**,
   it falls on you to make sure that it doesn't before running the result script.
 - The script does not check whether constraint names already exist,
-  it falls on you to use the @ConstraintsNameAppend parameter to generate unique names.
-- The script (at the moment) does NOT support the following:
+  it falls on you to use the `@ConstraintsNameAppend` parameter to generate unique names.
+- The script (at the moment) does NOT support the following ([more info at the issues page](https://github.com/EitanBlumin/sp_GenerateTableDDLScript/issues)):
 	- Column Sets
 	- Collations different from Database Default
 	- Filestream columns
@@ -75,6 +71,16 @@ SELECT @CMD
  	- Rule objects
  	- Non-default Filegroups
 	- In-Memory tables
+
+## Supported Versions
+
+At this time, this script was tested on the following Microsoft SQL Server versions:
+
+- 2014
+- 2016
+- 2017
+
+If you wish to contribute by testing on additional versions, you're more than welcome to do so, and submit your results to our [GitHub Issues page](https://github.com/EitanBlumin/sp_GenerateTableDDLScript/issues).
 
 ## Contribution & Issue Submission
 
