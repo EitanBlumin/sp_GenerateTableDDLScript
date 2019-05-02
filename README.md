@@ -8,9 +8,9 @@ The sp_GenerateTableDDLScript procedure is licensed under the Mozilla Public Lic
 
 For more info [Click Here](https://github.com/EitanBlumin/sp_GenerateTableDDLScript/blob/master/LICENSE)
 
-## Installation
+## Download & Installation
 
-You may install this procedure in your SQL Server instance by downloading (or copy-and-pasting) the script sp_GenerateTableDDLScript.sql and running it in the master database, and then use the following command to turn it into a system stored procedure, thus making it usable anywhere in the instance:
+You may install this procedure in your SQL Server instance by downloading (or copy-and-pasting) the script [sp_GenerateTableDDLScript.sql](https://raw.githubusercontent.com/EitanBlumin/sp_GenerateTableDDLScript/master/sp_GenerateTableDDLScript.sql) and running it in the master database, and then use the following command to turn it into a system stored procedure, thus making it usable anywhere in the instance:
 
 `EXECUTE sp_MS_marksystemobject 'sp_GenerateTableDDLScript'`
 
