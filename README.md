@@ -94,4 +94,4 @@ You may view the currently opened issues at the [GitHub Issues page](https://git
 
 The script is mainly based off of the sp_ScriptTable stored procedure originally published by Tim Chapman in this URL:
 
-https://www.techrepublic.com/blog/the-enterprise-cloud/script-table-definitions-using-tsql/
+[https://www.techrepublic.com/blog/the-enterprise-cloud/script-table-definitions-using-tsql/](https://www.techrepublic.com/blog/the-enterprise-cloud/script-table-definitions-using-tsql/)
