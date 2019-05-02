@@ -58,7 +58,7 @@ SELECT @CMD
 @ConstraintsNameAppend SYSNAME = ''	-- This is an optional text string to append to constraint names, in order to avoid the duplicate object name exception. This is useful when creating the new table within the same database.
 ```
 
-## Remarks:
+## Remarks
 
 - The **source table must exist**, otherwise an exception will be raised.
 - The script **does not check whether the target table already exists**,
@@ -94,7 +94,7 @@ Any contribution is welcome.
 
 You may view the currently opened issues at the [GitHub Issues page](https://github.com/EitanBlumin/sp_GenerateTableDDLScript/issues).
 
-## Acknowledgements:
+## Acknowledgements
 
 The script is mainly based off of the sp_ScriptTable stored procedure originally published by Tim Chapman in this URL:
 
