@@ -74,8 +74,8 @@ SELECT @CMD
 	- Sparse columns
 	- Not for replication property
 	- XML document collections
- 	- Rule objects
- 	- Non-default Filegroups
+	- Rule objects
+	- Non-default Filegroups
 	- In-Memory tables
 
 ## Supported Versions
