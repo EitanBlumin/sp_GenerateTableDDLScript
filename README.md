@@ -76,6 +76,14 @@ SELECT @CMD
  	- Non-default Filegroups
 	- In-Memory tables
 
+## Contribution & Issue Submission
+
+This is an open-source project, and therefore you may freely submit your own issue and pull requests, if you wish to contribute.
+
+Any contribution is welcome.
+
+You may view the currently opened issues at the [GitHub Issues page](https://github.com/EitanBlumin/sp_GenerateTableDDLScript/issues).
+
 ## Acknowledgements:
 
 The script is mainly based off of the sp_ScriptTable stored procedure originally published by Tim Chapman in this URL:
