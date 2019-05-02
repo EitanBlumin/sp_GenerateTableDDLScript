@@ -16,7 +16,7 @@ You may install this procedure in your SQL Server instance by downloading (or co
 
 ## Example Usages
 
-### Example use case 1: Creating a table in an archive database, without foreign keys and identity property:
+#### Example use case 1: Creating a table in an archive database, without foreign keys and identity property:
 
 ```
 DECLARE @CMD NVARCHAR(MAX)
@@ -24,7 +24,7 @@ EXEC sp_GenerateTableDDLScript 'Sales.OrderDetails', 'ArchiveDB.Sales.OrderDetai
 SELECT @CMD
 ```
 
-### Example use case 2: Duplicating a table within the same database:
+#### Example use case 2: Duplicating a table within the same database:
 
 ```
 DECLARE @CMD NVARCHAR(MAX)
@@ -32,7 +32,7 @@ EXEC sp_GenerateTableDDLScript 'Sales.OrderDetails', 'Sales.OrderDetails_New', @
 SELECT @CMD
 ```
 
-### Example use case 3: Duplicating a table as a temporary table, without computed columns:
+#### Example use case 3: Duplicating a table as a temporary table, without computed columns:
 
 ```
 DECLARE @CMD NVARCHAR(MAX)
