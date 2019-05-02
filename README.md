@@ -2,7 +2,7 @@
 
 This stored procedure can be used to generate a CREATE TABLE script in T-SQL for a given table in Microsoft SQL Server.
 
-## License:
+## License
 
 The sp_GenerateTableDDLScript procedure is licensed under the Mozilla Public License 2.0.
 
