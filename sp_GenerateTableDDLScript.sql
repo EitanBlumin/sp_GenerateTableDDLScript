@@ -226,7 +226,7 @@ COLUMN_DEFAULT,
 dobj.name AS ColumnDefaultName,
 CASE WHEN c.IS_NULLABLE = 'YES' THEN 1 ELSE 0 END,
 DATA_TYPE,
-CAST(CHARACTER_MAXIMUM_LENGTH AS INT),
+CASE WHEN CAST(CHARACTER_MAXIMUM_LENGTH AS INT) > 8000 THEN NULL ELSE CAST(CHARACTER_MAXIMUM_LENGTH AS INT) END,
 CAST(NUMERIC_PRECISION AS INT),
 CAST(NUMERIC_SCALE AS INT),
 DOMAIN_NAME,
@@ -263,7 +263,7 @@ CASE
 WHEN FieldDefinition IS NOT NULL THEN 'AS ' + FieldDefinition
 WHEN DomainName IS NOT NULL AND @UseSystemDataTypes = 0 THEN QUOTENAME(DomainName) + CASE WHEN IsNullable = 1 THEN ' NULL ' ELSE ' NOT NULL ' END
 ELSE QUOTENAME(UPPER(DataType)) +
-CASE WHEN IsCharColumn = 1 THEN '(' + CAST(MaxLength AS VARCHAR(10)) + ')' ELSE '' END +
+CASE WHEN IsCharColumn = 1 AND [MaxLength] IS NOT NULL THEN '(' + ISNULL(CAST(NULLIF([MaxLength], -1) AS VARCHAR(10)), 'MAX') + ')' ELSE '' END +
 CASE WHEN @IncludeIdentity = 1 AND IdentityColumn = 1 THEN ' IDENTITY(' + CAST(IdentitySeed AS VARCHAR(5))+ ',' + CAST(IdentityIncrement AS VARCHAR(5)) + ')' ELSE '' END +
 CASE WHEN IsNullable = 1 THEN ' NULL ' ELSE ' NOT NULL ' END +
 CASE WHEN ColumnDefaultName IS NOT NULL AND @IncludeDefaults = 1 THEN ' CONSTRAINT ' + QUOTENAME(ColumnDefaultName + @ConstraintsNameAppend) + ' DEFAULT' + UPPER(ColumnDefaultValue) ELSE '' END
@@ -272,8 +272,11 @@ CASE WHEN FieldID = (SELECT MAX(FieldID) FROM @ShowFields) THEN '' ELSE ',' END
 FROM @ShowFields
 
 INSERT INTO @Definition(FieldValue)
+VALUES(CHAR(10) + ')')
+
+INSERT INTO @Definition(FieldValue)
 SELECT
-', CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + ' FOREIGN KEY (' + ParentColumns + ') REFERENCES ' + ReferencedObject + '(' + ReferencedColumns + ')'
+'ALTER TABLE ' + @NewTableName + ' ADD CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + ' FOREIGN KEY (' + ParentColumns + ') REFERENCES ' + ReferencedObject + '(' + ReferencedColumns + ');'
 FROM
 (
 SELECT
@@ -304,7 +307,7 @@ AND @IncludeForeignKeys = 1
 ) a
 
 INSERT INTO @Definition(FieldValue)
-SELECT CHAR(10) + ', CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + ' CHECK ' + definition FROM sys.check_constraints
+SELECT CHAR(10) + 'ALTER TABLE ' + @NewTableName + ' ADD CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + ' CHECK ' + definition + ';' FROM sys.check_constraints
 WHERE parent_object_id = @TableObjId
 AND @IncludeCheckConstraints = 1
 
@@ -338,7 +341,7 @@ AND @IncludeUniqueIndexes = 1
 SET @ClusteredPK = CASE WHEN @@ROWCOUNT > 0 THEN 1 ELSE 0 END
 
 INSERT INTO @Definition(FieldValue)
-SELECT CHAR(10) + ', CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + CASE type WHEN 'PK' THEN ' PRIMARY KEY ' + CASE WHEN pk.ObjectID IS NULL THEN ' NONCLUSTERED ' ELSE ' CLUSTERED ' END
+SELECT CHAR(10) + 'ALTER TABLE ' + @NewTableName + ' ADD CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + CASE type WHEN 'PK' THEN ' PRIMARY KEY ' + CASE WHEN pk.ObjectID IS NULL THEN ' NONCLUSTERED ' ELSE ' CLUSTERED ' END
 WHEN 'UQ' THEN ' UNIQUE ' END + CASE WHEN u.ObjectID IS NOT NULL THEN ' NONCLUSTERED ' ELSE '' END + '(' +
 REVERSE(SUBSTRING(REVERSE((
 SELECT
@@ -352,7 +355,7 @@ WHERE
 i.object_id = ccok.parent_object_id AND
 ccok.object_id = cco.object_id
 FOR XML PATH('')
-)), 2, 8000)) + ')'
+)), 2, 8000)) + ');'
 FROM
 sys.key_constraints cco
 LEFT JOIN @PKObjectID pk ON cco.object_id = pk.ObjectID
@@ -361,11 +364,12 @@ WHERE
 cco.parent_object_id = @TableObjId
 AND (@IncludePrimaryKey = 1 OR @IncludeUniqueIndexes = 1)
 
+
 IF @IncludeIndexes = 1
 BEGIN
 INSERT INTO @Definition(FieldValue)
 SELECT
-CHAR(10) + ', INDEX ' + QUOTENAME([name]) COLLATE SQL_Latin1_General_CP1_CI_AS + ' ' + type_desc + ' (' +
+CHAR(10) + 'CREATE ' + type_desc + ' INDEX ' + QUOTENAME([name]) COLLATE SQL_Latin1_General_CP1_CI_AS + ' ON ' + @NewTableName + ' (' +
 REVERSE(SUBSTRING(REVERSE((
 SELECT QUOTENAME(name) + CASE WHEN sc.is_descending_key = 1 THEN ' DESC' ELSE ' ASC' END + ','
 FROM
@@ -386,10 +390,6 @@ AND CASE WHEN @ClusteredPK = 1 AND is_primary_key = 1 AND type = 1 THEN 0 ELSE 1
 AND is_unique_constraint = 0
 AND is_primary_key = 0
 END
-
-INSERT INTO @Definition(FieldValue)
-VALUES(CHAR(10) + ')')
-
 INSERT INTO @MainDefinition(FieldValue)
 SELECT FieldValue FROM @Definition
 ORDER BY DefinitionID ASC
