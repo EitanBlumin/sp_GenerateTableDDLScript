@@ -20,19 +20,6 @@ Purpose:
 ---------------------------------------------------------------------------
 License:
 --------------------------------------
- The sp_GenerateTableDDLScript procedure is licensed under the Mozilla Public License 2.0
-
- Permissions of this weak copyleft license are conditioned on making available source code
- of licensed files and modifications of those files under the same license (or in certain cases, one of the GNU licenses).
- Copyright and license notices must be preserved. Contributors provide an express grant of patent rights.
- However, a larger work using the licensed work may be distributed under different terms and without source code
- for files added in the larger work.
-
- For the full MPL2.0 license agreement: https://www.mozilla.org/en-US/MPL/2.0/
-
----------------------------------------------------------------------------
-Parameters:
---------------------------------------
 @TableName SYSNAME,					-- The name of the source table. This parameter is mandatory.
 									-- If the table's schema is not default (dbo), then please specify the 
 									-- schema name as well as part of the parameter.
@@ -48,9 +35,10 @@ Parameters:
 @IncludeUniqueIndexes BIT = 1,		-- Set whether to include unique index constraints
 @IncludeComputedColumns BIT = 1,	-- Set whether to include computed columns (if not, they will also be automatically ignored by constraints and indexes)
 @UseSystemDataTypes BIT = 0,		-- Set whether to use system data type names instead of user data type names
-@ConstraintsNameAppend SYSNAME = ''	-- This is an optional text string to append to constraint names, 
+@ConstraintsNameAppend SYSNAME = '',-- This is an optional text string to append to constraint names, 
 									-- in order to avoid the duplicate object name exception.
 									-- This is useful when creating the new table within the same database.
+@Verbose BIT = 0					-- Optional parameter. If set to 1, will display informative messages, and will output a table representing the table fields
 
 ---------------------------------------------------------------------------
 Example Usages:
@@ -100,9 +88,11 @@ Acknowledgements:
 Version History:
 --------------------------------------
 2019-04-17: First publication
+2019-07-09: Fixed bug returning -1 character length for MAX length columns
+2019-07-09: Added optional @Verbose parameter
 ---------------------------------------------------------------------------
 */
-CREATE PROCEDURE dbo.sp_GenerateTableDDLScript
+CREATE PROCEDURE [dbo].[sp_GenerateTableDDLScript]
 (
 @TableName NVARCHAR(500),
 @NewTableName SYSNAME = NULL,
@@ -116,7 +106,8 @@ CREATE PROCEDURE dbo.sp_GenerateTableDDLScript
 @IncludeUniqueIndexes BIT = 1,
 @IncludeComputedColumns BIT = 1,
 @UseSystemDataTypes BIT = 0,
-@ConstraintsNameAppend SYSNAME = ''
+@ConstraintsNameAppend SYSNAME = '',
+@Verbose BIT = 0
 )
 AS
 BEGIN
@@ -129,6 +120,7 @@ FieldValue NVARCHAR(4000)
 DECLARE @TableObjId INT
 DECLARE @ClusteredPK BIT
 DECLARE @TableSchema NVARCHAR(255)
+DECLARE @RCount INT
 
 SELECT @TableName = name, @TableObjId = id, @TableSchema = OBJECT_SCHEMA_NAME(id) FROM sysobjects WHERE id = OBJECT_ID(@TableName);
 
@@ -226,7 +218,7 @@ COLUMN_DEFAULT,
 dobj.name AS ColumnDefaultName,
 CASE WHEN c.IS_NULLABLE = 'YES' THEN 1 ELSE 0 END,
 DATA_TYPE,
-CASE WHEN CAST(CHARACTER_MAXIMUM_LENGTH AS INT) > 8000 THEN NULL ELSE CAST(CHARACTER_MAXIMUM_LENGTH AS INT) END,
+CAST(CHARACTER_MAXIMUM_LENGTH AS INT),
 CAST(NUMERIC_PRECISION AS INT),
 CAST(NUMERIC_SCALE AS INT),
 DOMAIN_NAME,
@@ -248,6 +240,10 @@ AND (comp.definition IS NULL OR @IncludeComputedColumns = 1)
 ORDER BY
 c.TABLE_NAME, c.ORDINAL_POSITION
 
+SET @RCount = @@ROWCOUNT
+IF @Verbose = 1 RAISERROR(N'Found %d fields',0,1,@RCount) WITH NOWAIT;
+IF @Verbose = 1 SELECT * FROM @ShowFields;
+
 INSERT INTO @HoldingArea (Flds) VALUES('(')
 
 INSERT INTO @Definition(FieldValue)
@@ -263,7 +259,7 @@ CASE
 WHEN FieldDefinition IS NOT NULL THEN 'AS ' + FieldDefinition
 WHEN DomainName IS NOT NULL AND @UseSystemDataTypes = 0 THEN QUOTENAME(DomainName) + CASE WHEN IsNullable = 1 THEN ' NULL ' ELSE ' NOT NULL ' END
 ELSE QUOTENAME(UPPER(DataType)) +
-CASE WHEN IsCharColumn = 1 AND [MaxLength] IS NOT NULL THEN '(' + ISNULL(CAST(NULLIF([MaxLength], -1) AS VARCHAR(10)), 'MAX') + ')' ELSE '' END +
+CASE WHEN IsCharColumn = 1 THEN '(' + ISNULL(NULLIF(CAST(MaxLength AS VARCHAR(10)),'-1'),'MAX') + ')' ELSE '' END +
 CASE WHEN @IncludeIdentity = 1 AND IdentityColumn = 1 THEN ' IDENTITY(' + CAST(IdentitySeed AS VARCHAR(5))+ ',' + CAST(IdentityIncrement AS VARCHAR(5)) + ')' ELSE '' END +
 CASE WHEN IsNullable = 1 THEN ' NULL ' ELSE ' NOT NULL ' END +
 CASE WHEN ColumnDefaultName IS NOT NULL AND @IncludeDefaults = 1 THEN ' CONSTRAINT ' + QUOTENAME(ColumnDefaultName + @ConstraintsNameAppend) + ' DEFAULT' + UPPER(ColumnDefaultValue) ELSE '' END
@@ -272,11 +268,8 @@ CASE WHEN FieldID = (SELECT MAX(FieldID) FROM @ShowFields) THEN '' ELSE ',' END
 FROM @ShowFields
 
 INSERT INTO @Definition(FieldValue)
-VALUES(CHAR(10) + ')')
-
-INSERT INTO @Definition(FieldValue)
 SELECT
-'ALTER TABLE ' + @NewTableName + ' ADD CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + ' FOREIGN KEY (' + ParentColumns + ') REFERENCES ' + ReferencedObject + '(' + ReferencedColumns + ');'
+', CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + ' FOREIGN KEY (' + ParentColumns + ') REFERENCES ' + ReferencedObject + '(' + ReferencedColumns + ')'
 FROM
 (
 SELECT
@@ -306,10 +299,16 @@ WHERE fk.parent_object_id = @TableObjId
 AND @IncludeForeignKeys = 1
 ) a
 
+SET @RCount = @@ROWCOUNT
+IF @Verbose = 1 RAISERROR(N'Found %d foreign keys',0,1,@RCount) WITH NOWAIT;
+
 INSERT INTO @Definition(FieldValue)
-SELECT CHAR(10) + 'ALTER TABLE ' + @NewTableName + ' ADD CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + ' CHECK ' + definition + ';' FROM sys.check_constraints
+SELECT CHAR(10) + ', CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + ' CHECK ' + definition FROM sys.check_constraints
 WHERE parent_object_id = @TableObjId
 AND @IncludeCheckConstraints = 1
+
+SET @RCount = @@ROWCOUNT
+IF @Verbose = 1 RAISERROR(N'Found %d check constraints',0,1,@RCount) WITH NOWAIT;
 
 INSERT INTO @PKObjectID(ObjectID)
 SELECT DISTINCT
@@ -323,6 +322,9 @@ parent_object_id = @TableObjId AND
 i.type = 1 AND
 is_primary_key = 1
 AND @IncludePrimaryKey = 1
+
+SET @RCount = @@ROWCOUNT
+IF @Verbose = 1 RAISERROR(N'Found %d primary key',0,1,@RCount) WITH NOWAIT;
 
 INSERT INTO @Uniques(ObjectID)
 SELECT DISTINCT
@@ -338,10 +340,13 @@ is_primary_key = 0 AND
 is_unique_constraint = 1
 AND @IncludeUniqueIndexes = 1
 
-SET @ClusteredPK = CASE WHEN @@ROWCOUNT > 0 THEN 1 ELSE 0 END
+SET @RCount = @@ROWCOUNT
+IF @Verbose = 1 RAISERROR(N'Found %d unique indexes',0,1,@RCount) WITH NOWAIT;
+
+SET @ClusteredPK = CASE WHEN @RCount > 0 THEN 1 ELSE 0 END
 
 INSERT INTO @Definition(FieldValue)
-SELECT CHAR(10) + 'ALTER TABLE ' + @NewTableName + ' ADD CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + CASE type WHEN 'PK' THEN ' PRIMARY KEY ' + CASE WHEN pk.ObjectID IS NULL THEN ' NONCLUSTERED ' ELSE ' CLUSTERED ' END
+SELECT CHAR(10) + ', CONSTRAINT ' + QUOTENAME(name + @ConstraintsNameAppend) + CASE type WHEN 'PK' THEN ' PRIMARY KEY ' + CASE WHEN pk.ObjectID IS NULL THEN ' NONCLUSTERED ' ELSE ' CLUSTERED ' END
 WHEN 'UQ' THEN ' UNIQUE ' END + CASE WHEN u.ObjectID IS NOT NULL THEN ' NONCLUSTERED ' ELSE '' END + '(' +
 REVERSE(SUBSTRING(REVERSE((
 SELECT
@@ -355,7 +360,7 @@ WHERE
 i.object_id = ccok.parent_object_id AND
 ccok.object_id = cco.object_id
 FOR XML PATH('')
-)), 2, 8000)) + ');'
+)), 2, 8000)) + ')'
 FROM
 sys.key_constraints cco
 LEFT JOIN @PKObjectID pk ON cco.object_id = pk.ObjectID
@@ -364,12 +369,11 @@ WHERE
 cco.parent_object_id = @TableObjId
 AND (@IncludePrimaryKey = 1 OR @IncludeUniqueIndexes = 1)
 
-
 IF @IncludeIndexes = 1
 BEGIN
 INSERT INTO @Definition(FieldValue)
 SELECT
-CHAR(10) + 'CREATE ' + type_desc + ' INDEX ' + QUOTENAME([name]) COLLATE SQL_Latin1_General_CP1_CI_AS + ' ON ' + @NewTableName + ' (' +
+CHAR(10) + ', INDEX ' + QUOTENAME([name]) COLLATE SQL_Latin1_General_CP1_CI_AS + ' ' + type_desc + ' (' +
 REVERSE(SUBSTRING(REVERSE((
 SELECT QUOTENAME(name) + CASE WHEN sc.is_descending_key = 1 THEN ' DESC' ELSE ' ASC' END + ','
 FROM
@@ -389,14 +393,24 @@ object_id = @TableObjId
 AND CASE WHEN @ClusteredPK = 1 AND is_primary_key = 1 AND type = 1 THEN 0 ELSE 1 END = 1
 AND is_unique_constraint = 0
 AND is_primary_key = 0
+
+SET @RCount = @@ROWCOUNT
+IF @Verbose = 1 RAISERROR(N'Found %d indexes',0,1,@RCount) WITH NOWAIT;
 END
+
+INSERT INTO @Definition(FieldValue)
+VALUES(CHAR(10) + ')')
+
 INSERT INTO @MainDefinition(FieldValue)
 SELECT FieldValue FROM @Definition
 ORDER BY DefinitionID ASC
 
+SET @RCount = @@ROWCOUNT
+IF @Verbose = 1 RAISERROR(N'Collected %d rows for main definition',0,1,@RCount) WITH NOWAIT;
+
 SET @Result = N'';
 
-SELECT @Result = @Result + CHAR(13) + FieldValue FROM @MainDefinition
+SELECT @Result = @Result + CHAR(13) + FieldValue FROM @MainDefinition WHERE FieldValue IS NOT NULL;
 
 END
 GO
