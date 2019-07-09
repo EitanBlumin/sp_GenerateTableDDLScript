@@ -27,6 +27,7 @@ EXEC sp_GenerateTableDDLScript
 	[ , [ @IncludeComputedColumns = ] 1 | 0 ]
 	[ , [ @UseSystemDataTypes = ] 1 | 0 ]
 	[ , [ @ConstraintsNameAppend = ] 'ConstraintsNameAppend' ]
+	[ , [ @Verbose = ] 1 | 0 ]
 ```
 
 ## Arguments
@@ -82,6 +83,10 @@ EXEC sp_GenerateTableDDLScript
 `[ @ConstraintsNameAppend = ] 'ConstraintsNameAppend'`
 
  Is a parameter of type **SYSNAME** with a default of '' (empty string). This is an optional text string to append to constraint names, in order to avoid the duplicate object name exception. This is useful when creating the new table within the same database.
+ 
+`[ @Verbose = ] 1 | 0`
+
+ Is a parameter of type **BIT** with a default of 0 (false). This is an optional parameter which, when set to 1 (true), will cause the procedure to print informative messages, and also output a result set containing the discovered table field metadata.
 
 ## Examples
 
