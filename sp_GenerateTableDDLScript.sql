@@ -124,7 +124,7 @@ DECLARE @RCount INT
 
 SELECT @TableName = name, @TableObjId = id, @TableSchema = OBJECT_SCHEMA_NAME(id) FROM sysobjects WHERE id = OBJECT_ID(@TableName);
 
-IF OBJECT_ID(@TableName) IS NULL OR @TableObjId IS NULL
+IF @TableObjId IS NULL
 BEGIN
 	RAISERROR(N'Table %s not found within current database!', 16, 1, @TableName);
 	RETURN -1;
